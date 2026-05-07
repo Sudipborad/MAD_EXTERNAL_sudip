@@ -57,36 +57,48 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      extendBody: true,
       body: _screens[_currentIndex],
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: _currentIndex,
-        onDestinationSelected: (index) {
-          setState(() {
-            _currentIndex = index;
-          });
-        },
-        destinations: const [
-          NavigationDestination(
-            icon: Icon(Icons.restaurant_menu),
-            label: 'Plan',
+      bottomNavigationBar: Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          border: Border(top: BorderSide(color: Colors.grey.shade200, width: 1)),
+        ),
+        child: NavigationBarTheme(
+          data: NavigationBarThemeData(
+            indicatorColor: const Color(0xFFE8F5E9),
+            labelTextStyle: MaterialStateProperty.resolveWith((states) {
+              if (states.contains(MaterialState.selected)) {
+                return const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Color(0xFF2E7D32));
+              }
+              return const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.grey);
+            }),
+            iconTheme: MaterialStateProperty.resolveWith((states) {
+              if (states.contains(MaterialState.selected)) {
+                return const IconThemeData(color: Color(0xFF2E7D32), size: 22);
+              }
+              return const IconThemeData(color: Colors.grey, size: 22);
+            }),
           ),
-          NavigationDestination(
-            icon: Icon(Icons.add_circle_outline),
-            label: 'Food',
+          child: NavigationBar(
+            height: 68,
+            backgroundColor: Colors.white,
+            elevation: 0,
+            selectedIndex: _currentIndex,
+            onDestinationSelected: (index) {
+              setState(() {
+                _currentIndex = index;
+              });
+            },
+            destinations: const [
+              NavigationDestination(icon: Icon(Icons.home_outlined), selectedIcon: Icon(Icons.home), label: 'Home'),
+              NavigationDestination(icon: Icon(Icons.add_circle_outline), selectedIcon: Icon(Icons.add_circle), label: 'Add Meal'),
+              NavigationDestination(icon: Icon(Icons.track_changes_outlined), selectedIcon: Icon(Icons.track_changes), label: 'Track'),
+              NavigationDestination(icon: Icon(Icons.analytics_outlined), selectedIcon: Icon(Icons.analytics), label: 'Analytics'),
+              NavigationDestination(icon: Icon(Icons.search_outlined), selectedIcon: Icon(Icons.search), label: 'Search'),
+            ],
           ),
-          NavigationDestination(
-            icon: Icon(Icons.track_changes),
-            label: 'Track',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.analytics),
-            label: 'Analytics',
-          ),
-          NavigationDestination(
-            icon: Icon(Icons.search),
-            label: 'Search',
-          ),
-        ],
+        ),
       ),
     );
   }
