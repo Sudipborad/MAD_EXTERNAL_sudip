@@ -18,7 +18,7 @@ class SearchFilterScreen extends ConsumerWidget {
       body: CustomScrollView(
         slivers: [
           SliverAppBar(
-            expandedHeight: 140.0,
+            expandedHeight: 170.0,
             floating: false,
             pinned: true,
             flexibleSpace: FlexibleSpaceBar(

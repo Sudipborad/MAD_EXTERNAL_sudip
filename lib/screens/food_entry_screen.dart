@@ -44,7 +44,7 @@ class _FoodEntryScreenState extends ConsumerState<FoodEntryScreen> {
       body: CustomScrollView(
         slivers: [
           SliverAppBar(
-            expandedHeight: 100.0,
+            expandedHeight: 130.0,
             floating: false,
             pinned: true,
             automaticallyImplyLeading: false,

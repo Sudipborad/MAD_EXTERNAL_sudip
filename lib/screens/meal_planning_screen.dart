@@ -30,7 +30,7 @@ class MealPlanningScreen extends ConsumerWidget {
       body: CustomScrollView(
         slivers: [
           SliverAppBar(
-            expandedHeight: 120.0,
+            expandedHeight: 160.0,
             floating: false,
             pinned: true,
             flexibleSpace: FlexibleSpaceBar(
