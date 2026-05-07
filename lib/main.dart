@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 
 import 'core/theme/app_theme.dart';
+import 'providers/nav_provider.dart';
 import 'screens/analytics_screen.dart';
 import 'screens/food_entry_screen.dart';
 import 'screens/meal_planning_screen.dart';
@@ -36,15 +37,8 @@ class MyApp extends StatelessWidget {
   }
 }
 
-class MainNavigationScreen extends StatefulWidget {
+class MainNavigationScreen extends ConsumerWidget {
   const MainNavigationScreen({super.key});
-
-  @override
-  State<MainNavigationScreen> createState() => _MainNavigationScreenState();
-}
-
-class _MainNavigationScreenState extends State<MainNavigationScreen> {
-  int _currentIndex = 0;
 
   final List<Widget> _screens = const [
     MealPlanningScreen(),
@@ -55,10 +49,11 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
   ];
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final currentIndex = ref.watch(navIndexProvider);
     return Scaffold(
       extendBody: true,
-      body: _screens[_currentIndex],
+      body: _screens[currentIndex],
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
           color: Colors.white,
@@ -84,11 +79,9 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
             height: 68,
             backgroundColor: Colors.white,
             elevation: 0,
-            selectedIndex: _currentIndex,
+            selectedIndex: currentIndex,
             onDestinationSelected: (index) {
-              setState(() {
-                _currentIndex = index;
-              });
+              ref.read(navIndexProvider.notifier).state = index;
             },
             destinations: const [
               NavigationDestination(icon: Icon(Icons.home_outlined), selectedIcon: Icon(Icons.home), label: 'Home'),

@@ -1,12 +1,19 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/intl.dart';
 
 import '../core/constants/app_colors.dart';
+import '../providers/search_provider.dart';
 
-class SearchFilterScreen extends StatelessWidget {
+class SearchFilterScreen extends ConsumerWidget {
   const SearchFilterScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final query = ref.watch(searchQueryProvider);
+    final typeFilter = ref.watch(searchMealTypeProvider);
+    final results = ref.watch(filteredMealsProvider);
+
     return Scaffold(
       body: CustomScrollView(
         slivers: [
@@ -28,10 +35,7 @@ class SearchFilterScreen extends StatelessWidget {
                   mainAxisAlignment: MainAxisAlignment.end,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
-                      '🔍 Search & Filter',
-                      style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: Colors.white),
-                    ),
+                    const Text('🔍 Search & Filter', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: Colors.white)),
                     const SizedBox(height: 14),
                     Container(
                       height: 46,
@@ -47,16 +51,20 @@ class SearchFilterScreen extends StatelessWidget {
                           const SizedBox(width: 8),
                           Expanded(
                             child: TextField(
+                              onChanged: (val) => ref.read(searchQueryProvider.notifier).state = val,
                               decoration: const InputDecoration(
                                 hintText: 'Search food items...',
                                 hintStyle: TextStyle(color: Colors.grey, fontWeight: FontWeight.bold, fontSize: 14),
                                 border: InputBorder.none,
                               ),
                               style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Colors.black87),
-                              controller: TextEditingController(text: 'chicken'),
                             ),
                           ),
-                          const Icon(Icons.close, color: Colors.grey, size: 18),
+                          if (query.isNotEmpty)
+                            InkWell(
+                              onTap: () => ref.read(searchQueryProvider.notifier).state = '',
+                              child: const Icon(Icons.close, color: Colors.grey, size: 18),
+                            ),
                         ],
                       ),
                     ),
@@ -77,11 +85,11 @@ class SearchFilterScreen extends StatelessWidget {
                     spacing: 8,
                     runSpacing: 8,
                     children: [
-                      _buildChip('All', false),
-                      _buildChip('🌅 Breakfast', true),
-                      _buildChip('☀️ Lunch', false),
-                      _buildChip('🌙 Dinner', false),
-                      _buildChip('🍎 Snacks', false),
+                      _buildChip('All', typeFilter == 'All', ref),
+                      _buildChip('Breakfast', typeFilter == 'Breakfast', ref),
+                      _buildChip('Lunch', typeFilter == 'Lunch', ref),
+                      _buildChip('Dinner', typeFilter == 'Dinner', ref),
+                      _buildChip('Snack', typeFilter == 'Snack', ref),
                     ],
                   ),
                   const SizedBox(height: 16),
@@ -91,17 +99,37 @@ class SearchFilterScreen extends StatelessWidget {
                     spacing: 8,
                     runSpacing: 8,
                     children: [
-                      _buildDateChip('Today', true, false),
-                      _buildDateChip('This Week', false, false),
-                      _buildDateChip('📅 Custom', false, true),
+                      _buildDateChip('Today', true),
+                      _buildDateChip('This Week', false),
                     ],
                   ),
                   const SizedBox(height: 16),
-                  const Text('3 results for "chicken"', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.grey)),
+                  Text('${results.length} results found', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.grey)),
                   const SizedBox(height: 10),
-                  _buildResultCard('🍗', 'Grilled Chicken Breast', 'Lunch', 'Today, 1:00 PM', 248, const Color(0xFF42A5F5)),
-                  _buildResultCard('🥗', 'Chicken Caesar Salad', 'Breakfast', 'Today, 9:00 AM', 380, const Color(0xFF66BB6A)),
-                  _buildResultCard('🍜', 'Chicken Rice Bowl', 'Dinner', 'Yesterday, 7:00 PM', 520, const Color(0xFFEF5350)),
+                  if (results.isEmpty)
+                    const Padding(
+                      padding: EdgeInsets.only(top: 20),
+                      child: Center(child: Text('No meals found matching your criteria.', style: TextStyle(color: Colors.grey))),
+                    )
+                  else
+                    ...results.map((meal) {
+                      String emoji = '🍽️';
+                      if (meal.mealType == 'Breakfast') emoji = '🌅';
+                      if (meal.mealType == 'Lunch') emoji = '☀️';
+                      if (meal.mealType == 'Dinner') emoji = '🌙';
+                      if (meal.mealType == 'Snack') emoji = '🍎';
+
+                      final formattedDate = DateFormat('MMM d, h:mm a').format(meal.createdAt);
+
+                      return _buildResultCard(
+                        emoji,
+                        meal.foodName,
+                        meal.mealType,
+                        formattedDate,
+                        meal.totalCalories,
+                        _getColorForType(meal.mealType),
+                      );
+                    }).toList(),
                   const SizedBox(height: 80),
                 ],
               ),
@@ -112,42 +140,54 @@ class SearchFilterScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildChip(String label, bool isActive) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-      decoration: BoxDecoration(
-        color: isActive ? const Color(0xFFE8F5E9) : Colors.white,
-        border: Border.all(color: isActive ? AppColors.primary : Colors.grey.shade300, width: 1.5),
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Text(
-        label,
-        style: TextStyle(
-          fontSize: 12,
-          fontWeight: FontWeight.bold,
-          color: isActive ? AppColors.primaryDark : Colors.grey,
+  Color _getColorForType(String type) {
+    switch (type.toLowerCase()) {
+      case 'breakfast': return const Color(0xFF66BB6A);
+      case 'lunch': return const Color(0xFF42A5F5);
+      case 'dinner': return const Color(0xFFEF5350);
+      case 'snack': return const Color(0xFFFFA726);
+      default: return AppColors.primary;
+    }
+  }
+
+  Widget _buildChip(String label, bool isActive, WidgetRef ref) {
+    return InkWell(
+      onTap: () => ref.read(searchMealTypeProvider.notifier).state = label,
+      borderRadius: BorderRadius.circular(20),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+        decoration: BoxDecoration(
+          color: isActive ? const Color(0xFFE8F5E9) : Colors.white,
+          border: Border.all(color: isActive ? AppColors.primary : Colors.grey.shade300, width: 1.5),
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: Text(
+          label == 'All' ? label : _getLabelWithEmoji(label),
+          style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: isActive ? AppColors.primaryDark : Colors.grey),
         ),
       ),
     );
   }
 
-  Widget _buildDateChip(String label, bool isActive, bool isDashed) {
+  String _getLabelWithEmoji(String label) {
+    switch(label) {
+      case 'Breakfast': return '🌅 Breakfast';
+      case 'Lunch': return '☀️ Lunch';
+      case 'Dinner': return '🌙 Dinner';
+      case 'Snack': return '🍎 Snacks';
+      default: return label;
+    }
+  }
+
+  Widget _buildDateChip(String label, bool isActive) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
       decoration: BoxDecoration(
         color: isActive ? const Color(0xFFE8F5E9) : Colors.white,
         borderRadius: BorderRadius.circular(12),
-        // Simple border for Flutter standard
         border: Border.all(color: isActive ? AppColors.primary : Colors.grey.shade300, width: 1.5),
       ),
-      child: Text(
-        label,
-        style: TextStyle(
-          fontSize: 11,
-          fontWeight: FontWeight.bold,
-          color: isActive ? AppColors.primaryDark : Colors.grey,
-        ),
-      ),
+      child: Text(label, style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: isActive ? AppColors.primaryDark : Colors.grey)),
     );
   }
 

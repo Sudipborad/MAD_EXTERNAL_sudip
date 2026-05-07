@@ -1,13 +1,26 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../core/constants/app_colors.dart';
+import '../providers/analytics_provider.dart';
+import '../providers/goal_provider.dart';
+import '../providers/meal_provider.dart';
 import '../widgets/nutrient_tile.dart';
 
-class TrackingScreen extends StatelessWidget {
+class TrackingScreen extends ConsumerWidget {
   const TrackingScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final goal = ref.watch(goalProvider);
+    final consumed = ref.watch(dailyCaloriesProvider);
+    final remaining = ref.watch(calorieRemainingProvider);
+    final protein = ref.watch(dailyProteinProvider);
+    final carbs = ref.watch(dailyCarbsProvider);
+    final fats = ref.watch(dailyFatsProvider);
+    final progress = ref.watch(calorieProgressProvider);
+    final meals = ref.watch(mealProvider);
+
     return Scaffold(
       body: CustomScrollView(
         slivers: [
@@ -29,22 +42,8 @@ class TrackingScreen extends StatelessWidget {
                   mainAxisAlignment: MainAxisAlignment.end,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: const [
-                    Text(
-                      '📊 Daily Tracking',
-                      style: TextStyle(
-                        fontSize: 22,
-                        fontWeight: FontWeight.w900,
-                        color: Colors.white,
-                      ),
-                    ),
-                    Text(
-                      'Thursday, May 7, 2026',
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.white70,
-                      ),
-                    ),
+                    Text('📊 Daily Tracking', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: Colors.white)),
+                    Text('Thursday, May 7, 2026', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Colors.white70)),
                   ],
                 ),
               ),
@@ -56,12 +55,9 @@ class TrackingScreen extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _buildBigSummaryCard(),
+                  _buildBigSummaryCard(consumed, goal.calorieGoal, remaining, progress),
                   const SizedBox(height: 16),
-                  const Text(
-                    'Nutrient Breakdown',
-                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: AppColors.primaryDark),
-                  ),
+                  const Text('Nutrient Breakdown', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: AppColors.primaryDark)),
                   const SizedBox(height: 10),
                   Row(
                     children: [
@@ -69,8 +65,8 @@ class TrackingScreen extends StatelessWidget {
                         child: NutrientTile(
                           icon: '💪',
                           name: 'Protein',
-                          current: 89,
-                          goal: 120,
+                          current: protein,
+                          goal: goal.proteinGoal,
                           progressColor: const Color(0xFF66BB6A),
                           progressColorEnd: AppColors.primaryDark,
                         ),
@@ -80,8 +76,8 @@ class TrackingScreen extends StatelessWidget {
                         child: NutrientTile(
                           icon: '🌾',
                           name: 'Carbs',
-                          current: 150,
-                          goal: 250,
+                          current: carbs,
+                          goal: goal.carbsGoal,
                           progressColor: const Color(0xFF64B5F6),
                           progressColorEnd: const Color(0xFF1976D2),
                         ),
@@ -91,8 +87,8 @@ class TrackingScreen extends StatelessWidget {
                         child: NutrientTile(
                           icon: '🥑',
                           name: 'Fats',
-                          current: 49,
-                          goal: 60,
+                          current: fats,
+                          goal: goal.fatsGoal,
                           progressColor: const Color(0xFFFFB74D),
                           progressColorEnd: const Color(0xFFE65100),
                         ),
@@ -100,12 +96,9 @@ class TrackingScreen extends StatelessWidget {
                     ],
                   ),
                   const SizedBox(height: 16),
-                  const Text(
-                    'Meal Timeline',
-                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: AppColors.primaryDark),
-                  ),
+                  const Text('Meal Timeline', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800, color: AppColors.primaryDark)),
                   const SizedBox(height: 10),
-                  _buildTimeline(),
+                  _buildTimeline(meals),
                   const SizedBox(height: 80),
                 ],
               ),
@@ -116,51 +109,42 @@ class TrackingScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildBigSummaryCard() {
+  Widget _buildBigSummaryCard(int consumed, int goal, int remaining, double progress) {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: AppColors.surface,
         borderRadius: BorderRadius.circular(24),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.07),
-            blurRadius: 20,
-            offset: const Offset(0, 4),
-          ),
-        ],
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.07), blurRadius: 20, offset: const Offset(0, 4))],
       ),
       child: Column(
         children: [
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
-              _buildBigStat('1,450', 'Consumed', AppColors.primary),
+              _buildBigStat('$consumed', 'Consumed', AppColors.primary),
               Container(width: 1, height: 50, color: Colors.grey.shade200),
-              _buildBigStat('2,000', 'Daily Goal', const Color(0xFF42A5F5)),
+              _buildBigStat('$goal', 'Daily Goal', const Color(0xFF42A5F5)),
               Container(width: 1, height: 50, color: Colors.grey.shade200),
-              _buildBigStat('550', 'Remaining', const Color(0xFFFF7043)),
+              _buildBigStat('$remaining', 'Remaining', const Color(0xFFFF7043)),
             ],
           ),
           const SizedBox(height: 14),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: const [
-              Text('Goal Achievement', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.black54)),
-              Text('72.5%', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w900, color: AppColors.primary)),
+            children: [
+              const Text('Goal Achievement', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.black54)),
+              Text('${(progress * 100).toStringAsFixed(1)}%', style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w900, color: AppColors.primary)),
             ],
           ),
           const SizedBox(height: 5),
           Container(
             height: 10,
             width: double.infinity,
-            decoration: BoxDecoration(
-              color: const Color(0xFFE8F5E9),
-              borderRadius: BorderRadius.circular(99),
-            ),
+            decoration: BoxDecoration(color: const Color(0xFFE8F5E9), borderRadius: BorderRadius.circular(99)),
             alignment: Alignment.centerLeft,
             child: FractionallySizedBox(
-              widthFactor: 0.725,
+              widthFactor: progress,
               child: Container(
                 decoration: BoxDecoration(
                   gradient: const LinearGradient(colors: [Color(0xFF66BB6A), AppColors.primaryDark]),
@@ -183,28 +167,52 @@ class TrackingScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildTimeline() {
+  Widget _buildTimeline(List<dynamic> meals) {
+    if (meals.isEmpty) {
+      return Container(
+        padding: const EdgeInsets.all(30),
+        width: double.infinity,
+        decoration: BoxDecoration(
+          color: AppColors.surface,
+          borderRadius: BorderRadius.circular(22),
+          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.07), blurRadius: 20, offset: const Offset(0, 4))],
+        ),
+        child: const Center(child: Text('No meals tracked today yet', style: TextStyle(color: Colors.grey, fontWeight: FontWeight.bold))),
+      );
+    }
+    
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: AppColors.surface,
         borderRadius: BorderRadius.circular(22),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.07),
-            blurRadius: 20,
-            offset: const Offset(0, 4),
-          ),
-        ],
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.07), blurRadius: 20, offset: const Offset(0, 4))],
       ),
       child: Column(
-        children: [
-          _buildTimelineItem('Oatmeal with Berries', '🌅 Breakfast · 8:00 AM', '320', const Color(0xFF66BB6A), false),
-          _buildTimelineItem('Grilled Chicken Salad', '☀️ Lunch · 1:00 PM', '480', const Color(0xFF42A5F5), false),
-          _buildTimelineItem('Greek Yogurt', '🍎 Snack · 4:00 PM', '150', const Color(0xFFFFA726), true),
-        ],
+        children: meals.asMap().entries.map((entry) {
+          final index = entry.key;
+          final meal = entry.value;
+          final isLast = index == meals.length - 1;
+          return _buildTimelineItem(
+            meal.foodName,
+            '${meal.mealType} · ${meal.quantity}g',
+            '${meal.totalCalories}',
+            _getColorForType(meal.mealType),
+            isLast,
+          );
+        }).toList(),
       ),
     );
+  }
+
+  Color _getColorForType(String type) {
+    switch (type.toLowerCase()) {
+      case 'breakfast': return const Color(0xFF66BB6A);
+      case 'lunch': return const Color(0xFF42A5F5);
+      case 'dinner': return const Color(0xFFEF5350);
+      case 'snack': return const Color(0xFFFFA726);
+      default: return AppColors.primary;
+    }
   }
 
   Widget _buildTimelineItem(String food, String meta, String cal, Color dotColor, bool isLast) {
@@ -220,12 +228,7 @@ class TrackingScreen extends StatelessWidget {
               decoration: BoxDecoration(color: dotColor, shape: BoxShape.circle),
             ),
             if (!isLast)
-              Container(
-                width: 2,
-                height: 40,
-                color: Colors.grey.shade200,
-                margin: const EdgeInsets.symmetric(vertical: 4),
-              ),
+              Container(width: 2, height: 40, color: Colors.grey.shade200, margin: const EdgeInsets.symmetric(vertical: 4)),
           ],
         ),
         const SizedBox(width: 12),

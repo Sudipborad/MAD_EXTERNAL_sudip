@@ -1,13 +1,30 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../core/constants/app_colors.dart';
+import '../providers/analytics_provider.dart';
 import '../widgets/analytics_chart.dart';
+import '../providers/goal_provider.dart';
 
-class AnalyticsScreen extends StatelessWidget {
+class AnalyticsScreen extends ConsumerWidget {
   const AnalyticsScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final dailyCals = ref.watch(dailyCaloriesProvider);
+    final progress = ref.watch(calorieProgressProvider);
+    final weeklyData = ref.watch(weeklyTrendProvider);
+    final goal = ref.watch(goalProvider).calorieGoal;
+    
+    final protein = ref.watch(dailyProteinProvider);
+    final carbs = ref.watch(dailyCarbsProvider);
+    final fats = ref.watch(dailyFatsProvider);
+    
+    final totalMacros = protein + carbs + fats;
+    final pPct = totalMacros > 0 ? (protein / totalMacros) : 0.0;
+    final cPct = totalMacros > 0 ? (carbs / totalMacros) : 0.0;
+    final fPct = totalMacros > 0 ? (fats / totalMacros) : 0.0;
+
     return Scaffold(
       body: CustomScrollView(
         slivers: [
@@ -29,14 +46,8 @@ class AnalyticsScreen extends StatelessWidget {
                   mainAxisAlignment: MainAxisAlignment.end,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
-                      '📈 Analytics',
-                      style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: Colors.white),
-                    ),
-                    const Text(
-                      'Your nutrition trends & insights',
-                      style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Colors.white70),
-                    ),
+                    const Text('📈 Analytics', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: Colors.white)),
+                    const Text('Your nutrition trends & insights', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Colors.white70)),
                     const SizedBox(height: 14),
                     Row(
                       children: [
@@ -58,23 +69,20 @@ class AnalyticsScreen extends StatelessWidget {
                 children: [
                   Row(
                     children: [
-                      Expanded(child: _buildInsightCard('🔥', '1,820', 'Avg Daily')),
+                      Expanded(child: _buildInsightCard('🔥', '$dailyCals', 'Avg Daily')),
                       const SizedBox(width: 10),
-                      Expanded(child: _buildInsightCard('🏆', 'Mon', 'Best Day')),
+                      Expanded(child: _buildInsightCard('🏆', 'Today', 'Best Day')),
                       const SizedBox(width: 10),
-                      Expanded(child: _buildInsightCard('🎯', '78%', 'Goal Rate')),
+                      Expanded(child: _buildInsightCard('🎯', '${(progress * 100).toStringAsFixed(0)}%', 'Goal Rate')),
                     ],
                   ),
                   const SizedBox(height: 16),
                   _buildChartCard(
                     title: 'Weekly Calorie Trend',
-                    child: const AnalyticsChart(
-                      weeklyData: [1500, 1800, 2200, 1600, 1900, 1400, 2100],
-                      goal: 2000,
-                    ),
+                    child: AnalyticsChart(weeklyData: weeklyData, goal: goal.toDouble()),
                   ),
                   _buildChartCard(
-                    title: 'Weekly Goal Achievement',
+                    title: 'Today\'s Goal Achievement',
                     child: Row(
                       children: [
                         SizedBox(
@@ -83,23 +91,14 @@ class AnalyticsScreen extends StatelessWidget {
                           child: Stack(
                             fit: StackFit.expand,
                             children: [
-                              CircularProgressIndicator(
-                                value: 1.0,
-                                strokeWidth: 10,
-                                color: const Color(0xFFE8F5E9),
-                              ),
-                              CircularProgressIndicator(
-                                value: 0.78,
-                                strokeWidth: 10,
-                                strokeCap: StrokeCap.round,
-                                color: AppColors.primary,
-                              ),
+                              const CircularProgressIndicator(value: 1.0, strokeWidth: 10, color: Color(0xFFE8F5E9)),
+                              CircularProgressIndicator(value: progress, strokeWidth: 10, strokeCap: StrokeCap.round, color: AppColors.primary),
                               Center(
                                 child: Column(
                                   mainAxisSize: MainAxisSize.min,
-                                  children: const [
-                                    Text('78%', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: AppColors.primaryDark)),
-                                    Text('achieved', style: TextStyle(fontSize: 9, fontWeight: FontWeight.w700, color: Colors.grey)),
+                                  children: [
+                                    Text('${(progress * 100).toStringAsFixed(0)}%', style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: AppColors.primaryDark)),
+                                    const Text('achieved', style: TextStyle(fontSize: 9, fontWeight: FontWeight.w700, color: Colors.grey)),
                                   ],
                                 ),
                               ),
@@ -111,11 +110,11 @@ class AnalyticsScreen extends StatelessWidget {
                           child: Column(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              _buildCircLegend(AppColors.primary, 'Goals Met', '78%'),
+                              _buildCircLegend(AppColors.primary, 'Goals Met', '${(progress * 100).toStringAsFixed(0)}%'),
                               const SizedBox(height: 6),
-                              _buildCircLegend(const Color(0xFFEF5350), 'Over Goal', '10%'),
+                              _buildCircLegend(const Color(0xFFEF5350), 'Over Goal', '0%'),
                               const SizedBox(height: 6),
-                              _buildCircLegend(const Color(0xFFBDBDBD), 'Under Goal', '12%'),
+                              _buildCircLegend(const Color(0xFFBDBDBD), 'Under Goal', '${((1 - progress) * 100).toStringAsFixed(0)}%'),
                             ],
                           ),
                         ),
@@ -123,8 +122,8 @@ class AnalyticsScreen extends StatelessWidget {
                     ),
                   ),
                   _buildChartCard(
-                    title: 'Avg Nutrient Distribution',
-                    child: Column(
+                    title: 'Nutrient Distribution',
+                    child: totalMacros == 0 ? const Center(child: Text("No data yet")) : Column(
                       children: [
                         Container(
                           height: 14,
@@ -133,9 +132,9 @@ class AnalyticsScreen extends StatelessWidget {
                           clipBehavior: Clip.hardEdge,
                           child: Row(
                             children: [
-                              Expanded(flex: 30, child: Container(color: AppColors.primary)),
-                              Expanded(flex: 48, child: Container(color: const Color(0xFF1976D2))),
-                              Expanded(flex: 22, child: Container(color: const Color(0xFFE65100))),
+                              Expanded(flex: (pPct * 100).toInt(), child: Container(color: AppColors.primary)),
+                              Expanded(flex: (cPct * 100).toInt(), child: Container(color: const Color(0xFF1976D2))),
+                              Expanded(flex: (fPct * 100).toInt(), child: Container(color: const Color(0xFFE65100))),
                             ],
                           ),
                         ),
@@ -143,9 +142,9 @@ class AnalyticsScreen extends StatelessWidget {
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            _buildDistLegend(AppColors.primary, 'Protein 30%'),
-                            _buildDistLegend(const Color(0xFF1976D2), 'Carbs 48%'),
-                            _buildDistLegend(const Color(0xFFE65100), 'Fat 22%'),
+                            _buildDistLegend(AppColors.primary, 'Protein ${(pPct * 100).toStringAsFixed(0)}%'),
+                            _buildDistLegend(const Color(0xFF1976D2), 'Carbs ${(cPct * 100).toStringAsFixed(0)}%'),
+                            _buildDistLegend(const Color(0xFFE65100), 'Fat ${(fPct * 100).toStringAsFixed(0)}%'),
                           ],
                         ),
                       ],
@@ -164,18 +163,8 @@ class AnalyticsScreen extends StatelessWidget {
   Widget _buildTab(String label, bool isActive) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 6),
-      decoration: BoxDecoration(
-        color: isActive ? Colors.white : Colors.white24,
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Text(
-        label,
-        style: TextStyle(
-          fontSize: 12,
-          fontWeight: FontWeight.w800,
-          color: isActive ? AppColors.primaryDark : Colors.white,
-        ),
-      ),
+      decoration: BoxDecoration(color: isActive ? Colors.white : Colors.white24, borderRadius: BorderRadius.circular(20)),
+      child: Text(label, style: TextStyle(fontSize: 12, fontWeight: FontWeight.w800, color: isActive ? AppColors.primaryDark : Colors.white)),
     );
   }
 
