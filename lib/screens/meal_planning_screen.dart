@@ -7,6 +7,7 @@ import '../providers/analytics_provider.dart';
 import '../providers/goal_provider.dart';
 import '../providers/meal_provider.dart';
 import '../providers/nav_provider.dart';
+import '../services/sync_service.dart';
 import '../widgets/calorie_progress_card.dart';
 import '../widgets/meal_card.dart';
 
@@ -58,7 +59,10 @@ class MealPlanningScreen extends ConsumerWidget {
                       mainAxisAlignment: MainAxisAlignment.end,
                       crossAxisAlignment: CrossAxisAlignment.end,
                       children: [
-                        const CircleAvatar(radius: 20, backgroundColor: Colors.white24, child: Text('👤', style: TextStyle(fontSize: 20))),
+                        InkWell(
+                          onTap: () => _handleSync(context, ref),
+                          child: const CircleAvatar(radius: 20, backgroundColor: Colors.white24, child: Icon(Icons.sync, color: Colors.white, size: 20)),
+                        ),
                         const SizedBox(height: 8),
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
@@ -104,6 +108,26 @@ class MealPlanningScreen extends ConsumerWidget {
 
   void _navToAddMeal(WidgetRef ref) {
     ref.read(navIndexProvider.notifier).state = 1;
+  }
+
+  Future<void> _handleSync(BuildContext context, WidgetRef ref) async {
+    final isSyncing = ref.read(isSyncingProvider);
+    if (isSyncing) return;
+
+    ref.read(isSyncingProvider.notifier).state = true;
+    
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Row(children: [CircularProgressIndicator(strokeWidth: 2, color: Colors.white), SizedBox(width: 10), Text('Syncing with cloud...')]), duration: Duration(seconds: 2)),
+    );
+
+    await ref.read(syncServiceProvider).syncData();
+    ref.read(isSyncingProvider.notifier).state = false;
+
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Sync complete! All offline data is safe.'), backgroundColor: AppColors.primary),
+      );
+    }
   }
 
   Widget _buildSectionHeader(String title, VoidCallback onAdd) {

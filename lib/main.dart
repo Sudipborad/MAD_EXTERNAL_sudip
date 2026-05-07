@@ -2,7 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 
+import 'core/repositories/hive_repository.dart';
 import 'core/theme/app_theme.dart';
+import 'models/food_item.dart';
+import 'models/meal_entry.dart';
+import 'models/nutrition_goal.dart';
 import 'providers/nav_provider.dart';
 import 'screens/analytics_screen.dart';
 import 'screens/food_entry_screen.dart';
@@ -15,6 +19,15 @@ void main() async {
   
   // Initialize Hive
   await Hive.initFlutter();
+
+  // Register Adapters
+  Hive.registerAdapter(FoodItemAdapter());
+  Hive.registerAdapter(MealEntryAdapter());
+  Hive.registerAdapter(NutritionGoalAdapter());
+
+  // Open Boxes
+  await Hive.openBox<MealEntry>(HiveRepository.mealsBoxName);
+  await Hive.openBox<NutritionGoal>(HiveRepository.goalBoxName);
   
   runApp(
     const ProviderScope(

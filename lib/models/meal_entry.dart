@@ -1,13 +1,37 @@
+import 'package:hive/hive.dart';
+
+part 'meal_entry.g.dart';
+
+@HiveType(typeId: 1)
 class MealEntry {
+  @HiveField(0)
   final String id;
+
+  @HiveField(1)
   final String foodId;
+
+  @HiveField(2)
   final String foodName;
+
+  @HiveField(3)
   final String mealType;
+
+  @HiveField(4)
   final int quantity;
+
+  @HiveField(5)
   final int totalCalories;
+
+  @HiveField(6)
   final int protein;
+
+  @HiveField(7)
   final int carbs;
+
+  @HiveField(8)
   final int fats;
+
+  @HiveField(9)
   final DateTime createdAt;
 
   MealEntry({

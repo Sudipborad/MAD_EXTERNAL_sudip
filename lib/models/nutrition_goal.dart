@@ -1,7 +1,19 @@
+import 'package:hive/hive.dart';
+
+part 'nutrition_goal.g.dart';
+
+@HiveType(typeId: 2)
 class NutritionGoal {
+  @HiveField(0)
   final int calorieGoal;
+
+  @HiveField(1)
   final int proteinGoal;
+
+  @HiveField(2)
   final int carbsGoal;
+
+  @HiveField(3)
   final int fatsGoal;
 
   NutritionGoal({

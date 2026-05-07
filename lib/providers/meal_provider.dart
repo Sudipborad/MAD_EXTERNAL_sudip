@@ -1,27 +1,43 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:uuid/uuid.dart';
 
+import '../core/repositories/hive_repository.dart';
 import '../models/meal_entry.dart';
 
 class MealNotifier extends StateNotifier<List<MealEntry>> {
-  MealNotifier() : super([]);
+  final HiveRepository _repository;
 
-  void addMeal(MealEntry meal) {
+  MealNotifier(this._repository) : super([]) {
+    _loadMeals();
+  }
+
+  void _loadMeals() {
+    state = _repository.getMeals();
+  }
+
+  Future<void> addMeal(MealEntry meal) async {
+    await _repository.addMeal(meal);
     state = [...state, meal];
   }
 
-  void updateMeal(MealEntry updatedMeal) {
+  Future<void> updateMeal(MealEntry updatedMeal) async {
+    await _repository.addMeal(updatedMeal);
     state = [
       for (final meal in state)
         if (meal.id == updatedMeal.id) updatedMeal else meal
     ];
   }
 
-  void deleteMeal(String id) {
+  Future<void> deleteMeal(String id) async {
+    await _repository.deleteMeal(id);
     state = state.where((meal) => meal.id != id).toList();
   }
 }
 
+final hiveRepositoryProvider = Provider<HiveRepository>((ref) {
+  return HiveRepository();
+});
+
 final mealProvider = StateNotifierProvider<MealNotifier, List<MealEntry>>((ref) {
-  return MealNotifier();
+  final repository = ref.watch(hiveRepositoryProvider);
+  return MealNotifier(repository);
 });
